@@ -882,10 +882,11 @@ class FerrettiOcrApp:
 
         try:
             analysis = analyze_cells(
-                self.normalized_bgr,
-                FORM_V2_CONFIG_PATH,
-                CELL_OUTPUT_DIR,
-                CELL_PREVIEW_PATH,
+                normalized_bgr=self.normalized_bgr,
+                config_path=FORM_V2_CONFIG_PATH,
+                output_dir=CELL_OUTPUT_DIR,
+                preview_path=CELL_PREVIEW_PATH,
+                geometry_config_path=CELL_GEOMETRY_CONFIG_PATH,
                 save_all_cells=False,
             )
         except Exception as error:
