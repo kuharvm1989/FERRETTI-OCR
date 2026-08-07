@@ -15,6 +15,9 @@ from ocr_engine_v2 import (
     export_ocr_results_csv,
     recognize_filled_cells,
 )
+from manual_corrections import (
+    save_manual_correction,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -282,6 +285,269 @@ class FerrettiOcrApp:
         status_bar.pack(
             fill=tk.X,
             side=tk.BOTTOM,
+        )
+
+    def edit_ocr_result(
+        self,
+        event=None,
+    ) -> None:
+        selection = self.results_tree.selection()
+
+        if not selection:
+            return
+
+        item_id = selection[0]
+
+        values = self.results_tree.item(
+            item_id,
+            "values",
+        )
+
+        if not values:
+            return
+
+        try:
+            row_number = int(
+                values[0]
+            )
+
+            column_number = int(
+                values[1]
+            )
+
+        except (
+            TypeError,
+            ValueError,
+            IndexError,
+        ):
+            return
+
+        current_value = ""
+
+        if len(values) >= 4:
+            current_value = str(
+                values[3]
+            )
+
+        editor = tk.Toplevel(
+            self.root
+        )
+
+        editor.title(
+            "Перевірка OCR"
+        )
+
+        editor.geometry(
+            "460x520"
+        )
+
+        editor.resizable(
+            False,
+            False,
+        )
+
+        editor.transient(
+            self.root
+        )
+
+        editor.grab_set()
+
+        title = tk.Label(
+            editor,
+            text=(
+                f"Рядок {row_number}, "
+                f"колонка {column_number}"
+            ),
+            font=(
+                "Arial",
+                14,
+                "bold",
+            ),
+        )
+
+        title.pack(
+            pady=10
+        )
+
+        image_label = tk.Label(
+            editor,
+            bg="white",
+            width=400,
+            height=300,
+        )
+
+        image_label.pack(
+            padx=20,
+            pady=10,
+        )
+
+        image_path = (
+            DEBUG_DIR
+            / "ocr_engine_v2"
+            / "source_cells"
+            / (
+                f"r{row_number:02d}_"
+                f"c{column_number}_"
+            )
+        )
+
+        matching_files = list(
+            image_path.parent.glob(
+                image_path.name
+                + "*.png"
+            )
+        )
+
+        photo = None
+
+        if matching_files:
+            try:
+                image = Image.open(
+                    matching_files[0]
+                )
+
+                image.thumbnail(
+                    (
+                        380,
+                        280,
+                    )
+                )
+
+                photo = ImageTk.PhotoImage(
+                    image
+                )
+
+                image_label.configure(
+                    image=photo,
+                    text="",
+                )
+
+                image_label.image = photo
+
+            except Exception:
+                image_label.configure(
+                    text=(
+                        "Не вдалося "
+                        "відкрити зображення"
+                    )
+                )
+        else:
+            image_label.configure(
+                text=(
+                    "Зображення клітинки "
+                    "не знайдено"
+                )
+            )
+
+        tk.Label(
+            editor,
+            text="Значення:",
+            font=(
+                "Arial",
+                12,
+            ),
+        ).pack(
+            pady=5
+        )
+
+        value_var = tk.StringVar(
+            value=current_value
+        )
+
+        value_entry = tk.Entry(
+            editor,
+            textvariable=value_var,
+            font=(
+                "Arial",
+                22,
+                "bold",
+            ),
+            justify="center",
+            width=8,
+        )
+
+        value_entry.pack(
+            pady=8
+        )
+    
+        value_entry.focus_set()
+
+        def save_value() -> None:
+            new_value = (
+                value_var.get()
+                .strip()
+            )
+
+            if (
+                new_value
+                and not new_value.isdigit()
+            ):
+                messagebox.showerror(
+                    "Помилка",
+                    "Допускаються тільки цифри.",
+                    parent=editor,
+                )
+                return
+
+            new_values = list(
+                values
+            )
+
+            if len(new_values) >= 4:
+                new_values[3] = new_value
+
+            if len(new_values) >= 6:
+                new_values[5] = "ПІДТВЕРДЖЕНО"
+
+            self.results_tree.item(
+                item_id,
+                values=new_values,
+            )
+
+            day_value = ""
+
+            if len(values) >= 3:
+                day_value = str(
+                    values[2]
+                )
+
+            source_image_path = ""
+
+            if matching_files:
+                source_image_path = str(
+                    matching_files[0]
+                )
+
+            save_manual_correction(
+                row=row_number,
+                column=column_number,
+                day=day_value,
+                ocr_value=current_value,
+                confirmed_value=new_value,
+                source_image=source_image_path,
+            )
+
+            editor.destroy()
+
+        save_button = tk.Button(
+            editor,
+            text="Зберегти",
+            command=save_value,
+            font=(
+                "Arial",
+                12,
+                "bold",
+            ),
+            width=14,
+        )
+
+        save_button.pack(
+            pady=15
+        )
+
+        editor.bind(
+            "<Return>",
+            lambda _event: save_value(),
         )
 
     def select_pdf(self) -> None:
@@ -1093,6 +1359,13 @@ class FerrettiOcrApp:
         tree.tag_configure(
             "review",
             background="#fce5cd",
+        )
+
+        self.results_tree = tree
+
+        tree.bind(
+            "<Double-1>",
+            self.edit_ocr_result,
         )
 
         for item in batch.items:

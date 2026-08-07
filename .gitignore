@@ -253,3 +253,9 @@ __marimo__/
 
 # OCR training dataset
 dataset/
+
+# Test/debug outputs
+tests/outputs/
+
+# Model backups
+models/backups/
