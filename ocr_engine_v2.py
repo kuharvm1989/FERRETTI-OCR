@@ -11,7 +11,7 @@ import pytesseract
 from cell_parser import CellAnalysisResult, CellResult
 from digit_splitter import split_digits
 
-from digit_confidence import (
+from app.ocr.digit_confidence import (
     classify_digit_with_confidence,
 )
 
