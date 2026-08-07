@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from app.services.ocr_service import OCRService
 
 import cv2
 import numpy as np
@@ -1147,12 +1148,12 @@ class FerrettiOcrApp:
         self.root.update_idletasks()
 
         try:
-            analysis = analyze_cells(
-                normalized_bgr=self.normalized_bgr,
-                config_path=FORM_V2_CONFIG_PATH,
-                output_dir=CELL_OUTPUT_DIR,
-                preview_path=CELL_PREVIEW_PATH,
-                geometry_config_path=CELL_GEOMETRY_CONFIG_PATH,
+            analysis = OCRService.analyze_page(
+                self.normalized_bgr,
+                FORM_V2_CONFIG_PATH,
+                CELL_OUTPUT_DIR,
+                CELL_PREVIEW_PATH,
+                CELL_GEOMETRY_CONFIG_PATH,
                 save_all_cells=False,
             )
         except Exception as error:

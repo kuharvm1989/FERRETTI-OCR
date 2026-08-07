@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from dataset_manifest import (
+from app.dataset_manifest import (
     add_sample,
 )
 

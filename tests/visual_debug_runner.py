@@ -22,7 +22,7 @@ from app.ocr.digit_splitter import (
     split_digits,
 )
 
-from ocr_engine_v2 import (
+from app.ocr.ocr_engine import (
     build_blue_mask,
 )
 

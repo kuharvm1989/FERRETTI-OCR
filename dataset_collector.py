@@ -9,8 +9,8 @@ from pathlib import Path
 
 import cv2
 
-from dataset_manifest import add_sample
-from ocr_engine_v2 import (
+from app.dataset_manifest import add_sample
+from app.ocr.ocr_engine import (
     configure_tesseract,
     tesseract_candidate,
 )

@@ -5,11 +5,16 @@ import hashlib
 import shutil
 import sys
 from pathlib import Path
+from app.config.project_paths import (
+    PROJECT_DIR,
+    MANUAL_CORRECTIONS_PATH,
+    DATASET_CONFIRMED_DIR,
+    LEARNING_IMPORT_REPORT_PATH,
+)
 
 import cv2
 
 
-PROJECT_DIR = Path(__file__).resolve().parent.parent
 
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(
@@ -20,25 +25,25 @@ if str(PROJECT_DIR) not in sys.path:
 
 from app.ocr.digit_splitter import split_digits
 from app.ocr.ocr_engine import build_blue_mask
-from app.dataset_manifest import (
+from app.dataset.manifest import (
     add_sample,
     load_rows,
 )
 
 
-CORRECTIONS_PATH = (
+MANUAL_CORRECTIONS_PATH = (
     PROJECT_DIR
     / "dataset"
     / "manual_corrections.csv"
 )
 
-CONFIRMED_DIR = (
+DATASET_CONFIRMED_DIR = (
     PROJECT_DIR
     / "dataset"
     / "confirmed"
 )
 
-REPORT_PATH = (
+LEARNING_IMPORT_REPORT_PATH = (
     PROJECT_DIR
     / "dataset"
     / "learning_import_report.csv"
@@ -63,12 +68,12 @@ def file_hash(
 
 
 def load_reported_keys() -> set[str]:
-    if not REPORT_PATH.exists():
+    if not LEARNING_IMPORT_REPORT_PATH.exists():
         return set()
 
     result = set()
 
-    with REPORT_PATH.open(
+    with LEARNING_IMPORT_REPORT_PATH.open(
         "r",
         encoding="utf-8-sig",
         newline="",
@@ -114,14 +119,14 @@ def append_report(
     status: str,
     details: str,
 ) -> None:
-    REPORT_PATH.parent.mkdir(
+    LEARNING_IMPORT_REPORT_PATH.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    exists = REPORT_PATH.exists()
+    exists = LEARNING_IMPORT_REPORT_PATH.exists()
 
-    with REPORT_PATH.open(
+    with LEARNING_IMPORT_REPORT_PATH.open(
         "a",
         encoding="utf-8-sig",
         newline="",
@@ -171,7 +176,7 @@ def build_mask(
 
 
 def main() -> None:
-    if not CORRECTIONS_PATH.exists():
+    if not MANUAL_CORRECTIONS_PATH.exists():
         print(
             "Не знайдено manual_corrections.csv"
         )
@@ -188,7 +193,7 @@ def main() -> None:
         for row in manifest_rows
     }
 
-    with CORRECTIONS_PATH.open(
+    with MANUAL_CORRECTIONS_PATH.open(
         "r",
         encoding="utf-8-sig",
         newline="",
@@ -359,7 +364,7 @@ def main() -> None:
                 continue
 
             destination_dir = (
-                CONFIRMED_DIR
+                DATASET_CONFIRMED_DIR
                 / digit
             )
 
@@ -465,7 +470,7 @@ def main() -> None:
     )
 
     print(
-        REPORT_PATH
+        LEARNING_IMPORT_REPORT_PATH
     )
 
     print()
