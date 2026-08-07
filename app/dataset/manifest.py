@@ -1,4 +1,9 @@
 from __future__ import annotations
+from app.config.project_paths import (
+    DATASET_DIR,
+    DATASET_MANIFEST_PATH,
+)
+
 
 import csv
 from datetime import datetime
@@ -9,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 DATASET_DIR = BASE_DIR / "dataset"
 
-MANIFEST_PATH = (
+DATASET_MANIFEST_PATH = (
     DATASET_DIR
     / "dataset_manifest.csv"
 )
@@ -37,10 +42,10 @@ def ensure_manifest() -> None:
         exist_ok=True,
     )
 
-    if MANIFEST_PATH.exists():
+    if DATASET_MANIFEST_PATH.exists():
         return
 
-    with MANIFEST_PATH.open(
+    with DATASET_MANIFEST_PATH.open(
         "w",
         encoding="utf-8-sig",
         newline="",
@@ -57,7 +62,7 @@ def ensure_manifest() -> None:
 def load_rows() -> list[dict[str, str]]:
     ensure_manifest()
 
-    with MANIFEST_PATH.open(
+    with DATASET_MANIFEST_PATH.open(
         "r",
         encoding="utf-8-sig",
         newline="",
@@ -75,7 +80,7 @@ def save_rows(
 ) -> None:
     ensure_manifest()
 
-    with MANIFEST_PATH.open(
+    with DATASET_MANIFEST_PATH.open(
         "w",
         encoding="utf-8-sig",
         newline="",
@@ -282,7 +287,7 @@ def main() -> None:
 
     print()
     print(
-        MANIFEST_PATH
+        DATASET_MANIFEST_PATH
     )
 
 

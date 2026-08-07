@@ -6,7 +6,7 @@ from pathlib import Path
 
 import cv2
 
-from dataset_manifest import (
+from app.dataset_manifest import (
     add_sample,
     load_rows,
 )

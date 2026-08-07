@@ -19,8 +19,8 @@ if str(PROJECT_DIR) not in sys.path:
 
 
 from app.ocr.digit_splitter import split_digits
-from ocr_engine_v2 import build_blue_mask
-from dataset_manifest import (
+from app.ocr.ocr_engine import build_blue_mask
+from app.dataset_manifest import (
     add_sample,
     load_rows,
 )
