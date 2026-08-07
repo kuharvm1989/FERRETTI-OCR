@@ -2,31 +2,19 @@ from __future__ import annotations
 
 import csv
 from collections import Counter
-from pathlib import Path
 
-
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-
-MANIFEST_PATH = (
-    PROJECT_DIR
-    / "dataset"
-    / "dataset_manifest.csv"
+from app.config.project_paths import (
+    DATASET_MANIFEST_PATH,
+    LEARNING_IMPORT_REPORT_PATH,
 )
-
-REPORT_PATH = (
-    PROJECT_DIR
-    / "dataset"
-    / "learning_import_report.csv"
-)
-
 
 def main() -> None:
     manual_counts = Counter()
 
     total_manual = 0
 
-    if MANIFEST_PATH.exists():
-        with MANIFEST_PATH.open(
+    if DATASET_MANIFEST_PATH.exists():
+        with DATASET_MANIFEST_PATH.open(
             "r",
             encoding="utf-8-sig",
             newline="",
@@ -77,8 +65,8 @@ def main() -> None:
     imported_rows = 0
     warnings = 0
 
-    if REPORT_PATH.exists():
-        with REPORT_PATH.open(
+    if LEARNING_IMPORT_REPORT_PATH.exists():
+        with LEARNING_IMPORT_REPORT_PATH.open(
             "r",
             encoding="utf-8-sig",
             newline="",
