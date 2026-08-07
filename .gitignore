@@ -251,8 +251,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# OCR training dataset
-dataset/
+# OCR training dataset — тільки коренева папка з даними
+/dataset/
 
 # Test/debug outputs
 tests/outputs/
