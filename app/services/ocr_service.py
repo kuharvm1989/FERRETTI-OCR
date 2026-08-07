@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from cell_parser import analyze_cells
+from app.ocr.cell_parser import analyze_cells
 
 
 class OCRService:

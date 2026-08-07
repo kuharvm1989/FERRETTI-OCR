@@ -10,7 +10,7 @@ import numpy as np
 import pymupdf
 from PIL import Image, ImageTk
 
-from cell_parser import CellAnalysisResult, analyze_cells
+from app.ocr.cell_parser import CellAnalysisResult, analyze_cells
 from app.ocr.ocr_engine import (
     DigitOcrBatchResult,
     export_ocr_results_csv,

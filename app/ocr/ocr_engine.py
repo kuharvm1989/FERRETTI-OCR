@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import pytesseract
 
-from cell_parser import CellAnalysisResult, CellResult
+from app.ocr.cell_parser import CellAnalysisResult, CellResult
 from app.ocr.digit_splitter import split_digits
 
 from app.ocr.digit_confidence import (

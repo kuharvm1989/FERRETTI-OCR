@@ -8,7 +8,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from cell_geometry import (
+from app.ocr.cell_geometry import (
     CellGeometry,
     Rect,
     load_geometry_settings,
