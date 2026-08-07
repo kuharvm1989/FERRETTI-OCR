@@ -11,8 +11,12 @@ import pytesseract
 from cell_parser import CellAnalysisResult, CellResult
 from digit_splitter import split_digits
 
-from svm_digit_classifier import (
-    classify_digit as classify_svm_digit,
+from digit_confidence import (
+    classify_digit_with_confidence,
+)
+
+from app.ocr.confidence_policy import (
+    digit_is_trusted,
 )
 
 
@@ -696,6 +700,9 @@ def recognize_segments(
     )
 
     values: list[str] = []
+    confidences: list[float] = []
+    trusted_flags: list[bool] = []
+
     paths: list[Path] = []
 
     for segment in segments:
@@ -722,32 +729,64 @@ def recognize_segments(
             path
         )
 
-        prediction = classify_svm_digit(
-            image
+        prediction = (
+            classify_digit_with_confidence(
+                image
+            )
         )
 
-        if prediction.digit not in (
-            "0123456789"
-        ):
+        digit = prediction.digit
+
+        if digit not in "0123456789":
             return (
                 None,
                 tuple(paths),
             )
 
         values.append(
-            prediction.digit
+            digit
+        )
+
+        confidences.append(
+            prediction.confidence
+        )
+
+        trusted_flags.append(
+            digit_is_trusted(
+                digit,
+                prediction.confidence,
+            )
         )
 
     value = "".join(
         values
     )
 
+    # Для багатозначного числа довіра
+    # визначається найслабшою цифрою.
+    number_confidence = min(
+        confidences,
+        default=0.0,
+    )
+
+    all_digits_trusted = all(
+        trusted_flags
+    )
+
+    method = (
+        "ferretti_svm_trusted"
+        if all_digits_trusted
+        else "ferretti_svm_review"
+    )
 
     return (
         OcrCandidate(
             value=value,
-            confidence=0.0,
-            method="ferretti_svm_v1",
+            confidence=(
+                number_confidence
+                * 100.0
+            ),
+            method=method,
         ),
         tuple(paths),
     )
@@ -932,8 +971,11 @@ def recognize_cell(
 
     status = (
         "OK"
-        if value
-        and method == "ferretti_svm_v1"
+        if (
+            value
+            and method
+            == "ferretti_svm_trusted"
+        )
         else "ПЕРЕВІРИТИ"
     )
 
