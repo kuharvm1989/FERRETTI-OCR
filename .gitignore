@@ -28,3 +28,7 @@ Desktop.ini
 
 # PDF test outputs
 output/
+
+# Test input files
+input/*.pdf
+input/*.PDF
