@@ -6,19 +6,15 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from app.config.project_paths import (
+    DATASET_CONFIRMED_DIR,
+)
 from app.ocr.svm_digit_classifier import (
     classify_digit,
     extract_features,
 )
 
 
-BASE_DIR = Path(__file__).resolve().parent
-
-CONFIRMED_DIR = (
-    BASE_DIR
-    / "dataset"
-    / "confirmed"
-)
 
 K_NEIGHBORS = 7
 
@@ -57,7 +53,7 @@ def load_reference_dataset() -> tuple[
 
     for digit in "0123456789":
         folder = (
-            CONFIRMED_DIR
+            DATASET_CONFIRMED_DIR
             / digit
         )
 

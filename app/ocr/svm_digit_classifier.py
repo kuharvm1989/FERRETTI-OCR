@@ -2,18 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from app.config.project_paths import (
+    DIGIT_SVM_MODEL_PATH,
+)
 
 import cv2
 import numpy as np
 
 
-PROJECT_DIR = Path(__file__).resolve().parents[2]
-
-MODEL_PATH = (
-    PROJECT_DIR
-    / "models"
-    / "digit_svm.yml"
-)
 
 IMAGE_SIZE = 64
 
@@ -170,14 +166,14 @@ def load_model():
     if _model is not None:
         return _model
 
-    if not MODEL_PATH.exists():
+    if not DIGIT_SVM_MODEL_PATH.exists():
         raise FileNotFoundError(
             f"Не знайдено FERRETTI SVM:\n"
-            f"{MODEL_PATH}"
+            f"{DIGIT_SVM_MODEL_PATH}"
         )
 
     _model = cv2.ml.SVM_load(
-        str(MODEL_PATH)
+        str(DIGIT_SVM_MODEL_PATH)
     )
 
     return _model
