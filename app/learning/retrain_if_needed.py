@@ -7,33 +7,14 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-
-
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-
-MANIFEST_PATH = (
-    PROJECT_DIR
-    / "dataset"
-    / "dataset_manifest.csv"
+from app.config.project_paths import (
+    PROJECT_DIR,
+    DATASET_MANIFEST_PATH,
+    LEARNING_STATE_PATH,
+    DIGIT_SVM_MODEL_PATH,
+    MODEL_BACKUPS_DIR,
 )
 
-STATE_PATH = (
-    PROJECT_DIR
-    / "dataset"
-    / "learning_state.json"
-)
-
-MODEL_PATH = (
-    PROJECT_DIR
-    / "models"
-    / "digit_svm.yml"
-)
-
-BACKUP_DIR = (
-    PROJECT_DIR
-    / "models"
-    / "backups"
-)
 
 TRAIN_SCRIPT = (
     PROJECT_DIR
@@ -52,12 +33,12 @@ RETRAIN_THRESHOLD = 25
 
 
 def count_manual_samples() -> int:
-    if not MANIFEST_PATH.exists():
+    if not DATASET_MANIFEST_PATH.exists():
         return 0
 
     count = 0
 
-    with MANIFEST_PATH.open(
+    with DATASET_MANIFEST_PATH.open(
         "r",
         encoding="utf-8-sig",
         newline="",
@@ -96,7 +77,7 @@ def count_manual_samples() -> int:
 
 
 def load_state() -> dict:
-    if not STATE_PATH.exists():
+    if not LEARNING_STATE_PATH.exists():
         return {
             "manual_count_at_last_retrain": 0,
             "last_retrain_at": "",
@@ -104,7 +85,7 @@ def load_state() -> dict:
 
     try:
         return json.loads(
-            STATE_PATH.read_text(
+            LEARNING_STATE_PATH.read_text(
                 encoding="utf-8",
             )
         )
@@ -127,7 +108,7 @@ def save_state(
             ),
     }
 
-    STATE_PATH.write_text(
+    LEARNING_STATE_PATH.write_text(
         json.dumps(
             state,
             ensure_ascii=False,
@@ -138,10 +119,10 @@ def save_state(
 
 
 def create_backup() -> Path | None:
-    if not MODEL_PATH.exists():
+    if not DIGIT_SVM_MODEL_PATH.exists():
         return None
 
-    BACKUP_DIR.mkdir(
+    MODEL_BACKUP_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
@@ -151,12 +132,12 @@ def create_backup() -> Path | None:
     )
 
     backup_path = (
-        BACKUP_DIR
+        MODEL_BACKUP_DIR
         / f"digit_svm_{timestamp}.yml"
     )
 
     shutil.copy2(
-        MODEL_PATH,
+        DIGIT_SVM_MODEL_PATH,
         backup_path,
     )
 
@@ -190,7 +171,7 @@ def restore_backup(
 
     shutil.copy2(
         backup_path,
-        MODEL_PATH,
+        DIGIT_SVM_MODEL_PATH,
     )
 
 
@@ -316,7 +297,7 @@ def main() -> None:
 
         return
 
-    if not MODEL_PATH.exists():
+    if not DIGIT_SVM_MODEL_PATH.exists():
         print(
             "Нова модель не створена."
         )
