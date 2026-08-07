@@ -1,0 +1,11 @@
+{
+  "detection_margin_left": 6,
+  "detection_margin_right": 6,
+  "detection_margin_top": 5,
+  "detection_margin_bottom": 5,
+  "ocr_margin_left": 8,
+  "ocr_margin_right": 8,
+  "ocr_margin_top": 7,
+  "ocr_margin_bottom": 7,
+  "debug_draw_ocr_zone": true
+}

@@ -1,0 +1,15 @@
+{
+  "template_version": "FORM-V1",
+  "source_dpi": 300,
+  "source_width": 2480,
+  "source_height": 3508,
+  "data_grid": {
+    "x1": 1263,
+    "y1": 438,
+    "x2": 2175,
+    "y2": 3490
+  },
+  "day_columns": 6,
+"operation_rows": 47,
+  "description": "Робоча область клітинок ПН–СБ від першої до останньої операції."
+}

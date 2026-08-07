@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# Debug
+debug/
+
+# OCR temporary files
+*.log
+*.tmp
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Backup files
+*_backup.py
+*_old.py
+
+# PDF test outputs
+output/
