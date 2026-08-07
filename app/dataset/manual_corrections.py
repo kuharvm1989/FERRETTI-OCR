@@ -3,14 +3,8 @@ from __future__ import annotations
 import csv
 from datetime import datetime
 from pathlib import Path
-
-
-BASE_DIR = Path(__file__).resolve().parent
-
-OUTPUT_PATH = (
-    BASE_DIR
-    / "dataset"
-    / "manual_corrections.csv"
+from app.config.project_paths import (
+    MANUAL_CORRECTIONS_PATH,
 )
 
 
@@ -34,14 +28,14 @@ def save_manual_correction(
     confirmed_value: str,
     source_image: str,
 ) -> None:
-    OUTPUT_PATH.parent.mkdir(
+    MANUAL_CORRECTIONS_PATH.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    file_exists = OUTPUT_PATH.exists()
+    file_exists = MANUAL_CORRECTIONS_PATH.exists()
 
-    with OUTPUT_PATH.open(
+    with MANUAL_CORRECTIONS_PATH.open(
         "a",
         encoding="utf-8-sig",
         newline="",

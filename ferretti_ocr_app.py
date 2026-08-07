@@ -10,12 +10,12 @@ import pymupdf
 from PIL import Image, ImageTk
 
 from cell_parser import CellAnalysisResult, analyze_cells
-from ocr_engine_v2 import (
+from app.ocr.ocr_engine import (
     DigitOcrBatchResult,
     export_ocr_results_csv,
     recognize_filled_cells,
 )
-from manual_corrections import (
+from app.dataset.manual_corrections import (
     save_manual_correction,
 )
 
