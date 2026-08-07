@@ -7,6 +7,10 @@ from pathlib import Path
 from tkinter import messagebox
 
 from PIL import Image, ImageTk
+from dataset_manifest import (
+    confirm_sample,
+    reject_sample,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -327,6 +331,18 @@ class DatasetReviewer:
             str(destination_path),
         )
 
+        relative_path = (
+            destination_path
+            .relative_to(BASE_DIR)
+            .as_posix()
+        )
+
+        confirm_sample(
+            source_path.stem.split("_")[-1],
+            digit,
+            image_path=relative_path,
+        )
+
         self.update_manifest(
             source_path.name,
             status="CONFIRMED",
@@ -361,6 +377,17 @@ class DatasetReviewer:
         shutil.move(
             str(source_path),
             str(destination_path),
+        )
+
+        relative_path = (
+            destination_path
+            .relative_to(BASE_DIR)
+            .as_posix()
+        )
+
+        reject_sample(
+            source_path.stem.split("_")[-1],
+            image_path=relative_path,
         )
 
         self.update_manifest(
