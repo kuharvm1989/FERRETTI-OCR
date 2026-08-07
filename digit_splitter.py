@@ -259,6 +259,220 @@ def find_valley_split(
     return cut
 
 
+def find_major_components(
+    mask: np.ndarray,
+) -> list[tuple[int, int, int, int, int]]:
+    """
+    Повертає суттєві зв'язані компоненти рукопису:
+    (x, y, width, height, area).
+
+    Дрібні відірвані точки/шум ігноруються.
+    """
+    component_count, labels, stats, _ = (
+        cv2.connectedComponentsWithStats(
+            mask,
+            connectivity=8,
+        )
+    )
+
+    total_ink = int(
+        np.count_nonzero(mask)
+    )
+
+    if total_ink <= 0:
+        return []
+
+    image_height, image_width = (
+        mask.shape[:2]
+    )
+
+    minimum_area = max(
+        12,
+        int(
+            round(
+                total_ink * 0.07
+            )
+        ),
+    )
+
+    minimum_height = max(
+        5,
+        int(
+            round(
+                image_height * 0.25
+            )
+        ),
+    )
+
+    components = []
+
+    for component_index in range(
+        1,
+        component_count,
+    ):
+        x = int(
+            stats[
+                component_index,
+                cv2.CC_STAT_LEFT,
+            ]
+        )
+
+        y = int(
+            stats[
+                component_index,
+                cv2.CC_STAT_TOP,
+            ]
+        )
+
+        width = int(
+            stats[
+                component_index,
+                cv2.CC_STAT_WIDTH,
+            ]
+        )
+
+        height = int(
+            stats[
+                component_index,
+                cv2.CC_STAT_HEIGHT,
+            ]
+        )
+
+        area = int(
+            stats[
+                component_index,
+                cv2.CC_STAT_AREA,
+            ]
+        )
+
+        if area < minimum_area:
+            continue
+
+        if height < minimum_height:
+            continue
+
+        components.append(
+            (
+                x,
+                y,
+                width,
+                height,
+                area,
+            )
+        )
+
+    components.sort(
+        key=lambda item: item[0]
+    )
+
+    return components
+
+def should_accept_split(
+    content: np.ndarray,
+    cut: int,
+) -> bool:
+    """
+    Перевіряє, чи обидві частини після valley split
+    достатньо великі, щоб вважатися окремими цифрами.
+    """
+
+    if cut <= 0 or cut >= content.shape[1]:
+        return False
+
+    left = content[:, :cut]
+    right = content[:, cut:]
+
+    left_pixels = int(
+        np.count_nonzero(left)
+    )
+
+    right_pixels = int(
+        np.count_nonzero(right)
+    )
+
+    total_pixels = (
+        left_pixels
+        + right_pixels
+    )
+
+    if total_pixels <= 0:
+        return False
+
+    left_ratio = (
+        left_pixels
+        / total_pixels
+    )
+
+    right_ratio = (
+        right_pixels
+        / total_pixels
+    )
+
+    # Обидві частини мають містити
+    # суттєву частину всього рукопису.
+    if (
+        left_ratio < 0.18
+        or right_ratio < 0.18
+    ):
+        return False
+
+    left_points = cv2.findNonZero(
+        left
+    )
+
+    right_points = cv2.findNonZero(
+        right
+    )
+
+    if (
+        left_points is None
+        or right_points is None
+    ):
+        return False
+
+    (
+        _lx,
+        _ly,
+        left_width,
+        left_height,
+    ) = cv2.boundingRect(
+        left_points
+    )
+
+    (
+        _rx,
+        _ry,
+        right_width,
+        right_height,
+    ) = cv2.boundingRect(
+        right_points
+    )
+
+    image_height = content.shape[0]
+
+    minimum_height = max(
+        8,
+        int(
+            round(
+                image_height * 0.45
+            )
+        ),
+    )
+
+    if (
+        left_height < minimum_height
+        or right_height < minimum_height
+    ):
+        return False
+
+    if (
+        left_width < 3
+        or right_width < 3
+    ):
+        return False
+
+    return True
+
 def detect_digit_ranges(
     mask: np.ndarray,
 ) -> list[tuple[int, int]]:
@@ -271,6 +485,161 @@ def detect_digit_ranges(
 
     height, width = content.shape[:2]
 
+    major_components = (
+        find_major_components(
+            content
+        )
+    )
+
+    # -------------------------------------------------
+    # ВАРІАНТ 1:
+    # Є дві суттєві незалежні компоненти.
+    #
+    # Це наш основний доказ того, що в клітинці
+    # написано дві цифри.
+    # -------------------------------------------------
+    if len(major_components) == 2:
+        (
+            x1,
+            _y1,
+            w1,
+            h1,
+            area1,
+        ) = major_components[0]
+
+        (
+            x2,
+            _y2,
+            w2,
+            h2,
+            area2,
+        ) = major_components[1]
+
+        total_area = (
+            area1
+            + area2
+        )
+
+        smaller_area_ratio = (
+            min(
+                area1,
+                area2,
+            )
+            / max(
+                1,
+                total_area,
+            )
+        )
+
+        smaller_height_ratio = (
+            min(
+                h1,
+                h2,
+            )
+            / max(
+                1,
+                max(
+                    h1,
+                    h2,
+                ),
+            )
+        )
+
+    # Для двох справжніх цифр обидві компоненти
+    # повинні містити суттєву частину рукопису.
+    #
+    # Маленький відірваний штрих у 6, 5, 2 тощо
+    # не повинен створювати другу цифру.
+        two_real_digits = (
+            smaller_area_ratio >= 0.18
+            and smaller_height_ratio >= 0.55
+        )
+
+        if two_real_digits:
+            end1 = x1 + w1
+
+            split_x = int(
+                round(
+                    (
+                        end1
+                        + x2
+                    )
+                    / 2
+                )
+            )
+
+            return [
+                (
+                    offset_x,
+                    offset_x + split_x,
+                ),
+                (
+                    offset_x + split_x,
+                    offset_x + width,
+                ),
+            ]
+
+    # Друга компонента занадто мала:
+    # трактуємо весь рукопис як одну цифру.
+        return [
+            (
+                offset_x,
+                offset_x + width,
+            )
+        ]
+
+    # -------------------------------------------------
+    # ВАРІАНТ 2:
+    # Є одна суттєва компонента.
+    #
+    # За замовчуванням це ОДНА цифра.
+    # Саме це повинно виправити наші 5 і 2.
+    # -------------------------------------------------
+    if len(major_components) == 1:
+        aspect_ratio = (
+            width
+            / max(
+                1,
+                height,
+            )
+        )
+
+        # Valley split дозволяємо тільки для
+        # дуже широкої суцільної компоненти.
+        #
+        # Це запасний випадок для двох цифр,
+        # які реально торкнулися одна одної.
+        if aspect_ratio >= 1.20:
+            cut = find_valley_split(
+                content
+            )
+
+            if (
+                cut is not None
+                and should_accept_split(
+                    content,
+                    cut,
+                )
+            ):
+                return [
+                    (
+                        offset_x,
+                        offset_x + cut,
+                    ),
+                    (
+                        offset_x + cut,
+                        offset_x + width,
+                    ),
+                ]
+
+    # -------------------------------------------------
+    # ВАРІАНТ 3:
+    # Компонент більше двох.
+    #
+    # Це може бути рукопис із відірваними штрихами.
+    # Тут використовуємо вертикальну проєкцію
+    # як резервний механізм.
+    # -------------------------------------------------
     raw_ranges = find_active_ranges(
         content
     )
@@ -279,7 +648,7 @@ def detect_digit_ranges(
         1,
         int(
             round(
-                width * 0.02
+                width * 0.06
             )
         ),
     )
@@ -307,81 +676,15 @@ def detect_digit_ranges(
             for start, end in ranges
         ]
 
-    if len(ranges) == 1:
-        aspect_ratio = (
-            width
-            / max(
-                1,
-                height,
-            )
-        )
-
-        if aspect_ratio >= 0.72:
-            cut = find_valley_split(
-                content
-            )
-
-            if cut is not None:
-                return [
-                    (
-                        offset_x,
-                        offset_x + cut,
-                    ),
-                    (
-                        offset_x + cut,
-                        offset_x + width,
-                    ),
-                ]
-
-        start, end = ranges[0]
-
+    # Якщо після всіх перевірок немає
+    # переконливого доказу двох цифр,
+    # безпечніше вважати запис однією цифрою.
+    if width > 0:
         return [
             (
-                offset_x + start,
-                offset_x + end,
+                offset_x,
+                offset_x + width,
             )
-        ]
-
-    if len(ranges) > 2:
-        scored_ranges = []
-
-        for start, end in ranges:
-            ink = int(
-                np.count_nonzero(
-                    content[
-                        :,
-                        start:end,
-                    ]
-                )
-            )
-
-            scored_ranges.append(
-                (
-                    ink,
-                    start,
-                    end,
-                )
-            )
-
-        selected = sorted(
-            scored_ranges,
-            reverse=True,
-        )[:2]
-
-        selected_ranges = sorted(
-            (
-                start,
-                end,
-            )
-            for _ink, start, end in selected
-        )
-
-        return [
-            (
-                offset_x + start,
-                offset_x + end,
-            )
-            for start, end in selected_ranges
         ]
 
     return []

@@ -9,6 +9,11 @@ import numpy as np
 import pytesseract
 
 from cell_parser import CellAnalysisResult, CellResult
+from digit_splitter import split_digits
+
+from svm_digit_classifier import (
+    classify_digit as classify_svm_digit,
+)
 
 
 TESSERACT_DEFAULT_PATH = Path(
@@ -675,74 +680,77 @@ def recognize_segments(
     OcrCandidate | None,
     tuple[Path, ...],
 ]:
-    ranges = segment_ranges(mask)
+    segments = split_digits(
+        mask
+    )
 
-    if not ranges or len(ranges) > 2:
+    if (
+        not segments
+        or len(segments) > 2
+    ):
         return None, ()
-
-    values: list[str] = []
-    confidences: list[float] = []
-    paths: list[Path] = []
 
     segment_dir.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    for index, (x1, x2) in enumerate(
-        ranges,
-        start=1,
-    ):
-        image = prepare_character(
-            mask,
-            x1,
-            x2,
-        )
+    values: list[str] = []
+    paths: list[Path] = []
+
+    for segment in segments:
+        image = segment.image
 
         path = (
             segment_dir
-            / f"{stem}_digit_{index}.png"
+            / (
+                f"{stem}_digit_"
+                f"{segment.index}.png"
+            )
         )
 
-        cv2.imwrite(
+        if not cv2.imwrite(
             str(path),
             image,
-        )
-
-        paths.append(path)
-
-        candidate = tesseract_candidate(
-            image,
-            psm=10,
-            method="segmented",
-        )
-
-        if (
-            candidate is None
-            or len(candidate.value) != 1
         ):
-            return None, tuple(paths)
+            raise RuntimeError(
+                f"Не вдалося зберегти "
+                f"сегмент:\n{path}"
+            )
+
+        paths.append(
+            path
+        )
+
+        prediction = classify_svm_digit(
+            image
+        )
+
+        if prediction.digit not in (
+            "0123456789"
+        ):
+            return (
+                None,
+                tuple(paths),
+            )
 
         values.append(
-            candidate.value
+            prediction.digit
         )
 
-        confidences.append(
-            candidate.confidence
-        )
+    value = "".join(
+        values
+    )
+
 
     return (
         OcrCandidate(
-            value="".join(values),
-            confidence=min(
-                confidences,
-                default=-1.0,
-            ),
-            method="segmented",
+            value=value,
+            confidence=0.0,
+            method="ferretti_svm_v1",
         ),
         tuple(paths),
     )
-
 
 def select_best_candidate(
     candidates: list[OcrCandidate],
@@ -888,9 +896,9 @@ def recognize_cell(
         prepared,
     )
 
-    candidates = recognize_whole(
-        prepared
-    )
+    candidates: list[
+        OcrCandidate
+    ] = []
 
     (
         segmented_candidate,
@@ -924,7 +932,8 @@ def recognize_cell(
 
     status = (
         "OK"
-        if value and confidence >= 0.80
+        if value
+        and method == "ferretti_svm_v1"
         else "ПЕРЕВІРИТИ"
     )
 
