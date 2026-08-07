@@ -17,7 +17,7 @@ if str(PROJECT_DIR) not in sys.path:
     )
 
 
-from digit_splitter import (
+from app.ocr.digit_splitter import (
     detect_digit_ranges,
     split_digits,
 )
