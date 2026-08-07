@@ -7,10 +7,10 @@ import cv2
 import numpy as np
 
 
-BASE_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = Path(__file__).resolve().parents[2]
 
 MODEL_PATH = (
-    BASE_DIR
+    PROJECT_DIR
     / "models"
     / "digit_svm.yml"
 )

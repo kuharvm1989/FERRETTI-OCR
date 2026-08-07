@@ -21,7 +21,7 @@ from digit_splitter import split_digits
 
 from ocr_engine_v2 import build_blue_mask
 
-from svm_digit_classifier import (
+from app.ocr.svm_digit_classifier import (
     classify_digit,
 )
 

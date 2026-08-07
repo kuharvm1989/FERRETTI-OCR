@@ -15,7 +15,7 @@ if str(PROJECT_DIR) not in sys.path:
     )
 
 
-from svm_digit_classifier import (
+from app.ocr.svm_digit_classifier import (
     classify_digit,
 )
 

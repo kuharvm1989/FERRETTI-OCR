@@ -6,7 +6,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from svm_digit_classifier import (
+from app.ocr.svm_digit_classifier import (
     classify_digit,
     extract_features,
 )
