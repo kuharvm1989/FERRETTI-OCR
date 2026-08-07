@@ -250,3 +250,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# OCR training dataset
+dataset/
