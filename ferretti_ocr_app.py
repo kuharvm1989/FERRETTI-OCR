@@ -22,6 +22,12 @@ from app.gui.controllers.table_calibration import (
 from app.gui.dialogs.ocr_results_dialog import (
     OcrResultsDialog,
 )
+from app.gui.controllers.pdf_controller import (
+    PdfController,
+)
+from app.services.ocr_pipeline import (
+    OCRPipeline,
+)
 
 
 
@@ -99,6 +105,33 @@ class FerrettiOcrApp:
                 status_var=self.status_var,
             )
         )
+        self.pdf_controller = PdfController(
+            file_var=self.file_var,
+            page_var=self.page_var,
+            marker_var=self.marker_var,
+            status_var=self.status_var,
+            previous_button=self.previous_button,
+            next_button=self.next_button,
+            render_dpi=RENDER_DPI,
+            show_original_callback=(
+                lambda image: self.show_bgr_image(
+                    self.original_canvas,
+                    image,
+                    target="original",
+                )
+            ),
+            clear_normalized_callback=(
+                lambda: self.normalized_canvas.delete(
+                    "all"
+                )
+            ),
+            reset_analysis_callback=(
+                self.reset_page_analysis
+            ),
+        )
+        self.ocr_pipeline = OCRPipeline(
+            self
+        )
         
     def build_interface(self) -> None:
         toolbar = ttk.Frame(
@@ -161,7 +194,9 @@ class FerrettiOcrApp:
         ttk.Button(
             toolbar,
             text="Знайти мітки та вирівняти",
-            command=self.detect_and_normalize,
+            command=lambda: (
+                self.ocr_pipeline.detect_and_normalize()
+            ),
         ).pack(
             side=tk.LEFT,
             padx=12,
@@ -179,7 +214,9 @@ class FerrettiOcrApp:
         ttk.Button(
             toolbar,
             text="Знайти заповнені клітинки",
-            command=self.detect_filled_cells,
+            command=lambda: (
+                self.ocr_pipeline.detect_filled_cells()
+            ),
         ).pack(
             side=tk.LEFT,
             padx=12,
@@ -188,7 +225,9 @@ class FerrettiOcrApp:
         ttk.Button(
             toolbar,
             text="Розпізнати цифри",
-            command=self.recognize_digits,
+            command=lambda: (
+                self.ocr_pipeline.recognize_digits()
+            ),
         ).pack(
             side=tk.LEFT,
             padx=4,
@@ -297,182 +336,55 @@ class FerrettiOcrApp:
             side=tk.BOTTOM,
         )
 
-
-    def select_pdf(self) -> None:
-        INPUT_DIR.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        selected = filedialog.askopenfilename(
-            title="Виберіть PDF із листами виробітку",
-            initialdir=str(INPUT_DIR),
-            filetypes=[
-                ("PDF files", "*.pdf"),
-                ("All files", "*.*"),
-            ],
-        )
-
-        if not selected:
-            return
-
-        self.close_pdf()
-
-        try:
-            document = pymupdf.open(selected)
-        except Exception as error:
-            messagebox.showerror(
-                "Помилка відкриття PDF",
-                str(error),
-            )
-            return
-
-        if document.page_count == 0:
-            document.close()
-
-            messagebox.showerror(
-                "Порожній PDF",
-                "Документ не містить сторінок.",
-            )
-            return
-
-        self.pdf_document = document
-        self.pdf_path = Path(selected)
-        self.page_index = 0
-
-        self.file_var.set(
-            f"Файл: {self.pdf_path.name}"
-        )
-
-        self.render_current_page()
-
-    def close_pdf(self) -> None:
-        if self.pdf_document is not None:
-            self.pdf_document.close()
-
-        self.pdf_document = None
-        self.pdf_path = None
-        self.original_bgr = None
-        self.normalized_bgr = None
-
-    def render_current_page(self) -> None:
-        if self.pdf_document is None:
-            return
-
-        try:
-            page = self.pdf_document.load_page(
-                self.page_index
-            )
-
-            pixmap = page.get_pixmap(
-                dpi=RENDER_DPI,
-                alpha=False,
-            )
-
-            image_array = np.frombuffer(
-                pixmap.samples,
-                dtype=np.uint8,
-            ).reshape(
-                pixmap.height,
-                pixmap.width,
-                pixmap.n,
-            )
-
-            if pixmap.n == 4:
-                image_bgr = cv2.cvtColor(
-                    image_array,
-                    cv2.COLOR_RGBA2BGR,
-                )
-            else:
-                image_bgr = cv2.cvtColor(
-                    image_array,
-                    cv2.COLOR_RGB2BGR,
-                )
-
-        except Exception as error:
-            messagebox.showerror(
-                "Помилка відображення сторінки",
-                str(error),
-            )
-            return
-
-        self.original_bgr = image_bgr
+    def reset_page_analysis(
+        self,
+    ) -> None:
         self.normalized_bgr = None
         self.last_cell_analysis = None
         self.last_ocr_batch = None
 
-        self.page_var.set(
-            f"Сторінка: {self.page_index + 1} "
-            f"із {self.pdf_document.page_count}"
-        )
+    def select_pdf(self) -> None:
+        self.pdf_controller.select_pdf()
+        self.sync_pdf_state()
 
-        self.marker_var.set(
-            "Мітки: не перевірено"
-        )
+    def close_pdf(self) -> None:
+        self.pdf_controller.close_pdf()
+        self.sync_pdf_state()
 
-        self.status_var.set(
-            "Сторінку завантажено. "
-            "Натисніть «Знайти мітки та вирівняти»."
-        )
-
-        self.show_bgr_image(
-            self.original_canvas,
-            self.original_bgr,
-            target="original",
-        )
-
-        self.normalized_canvas.delete("all")
-
-        self.update_navigation_buttons()
+    def render_current_page(self) -> None:
+        self.pdf_controller.render_current_page()
+        self.sync_pdf_state()
 
     def previous_page(self) -> None:
-        if (
-            self.pdf_document is None
-            or self.page_index <= 0
-        ):
-            return
-
-        self.page_index -= 1
-        self.render_current_page()
+        self.pdf_controller.previous_page()
+        self.sync_pdf_state()
 
     def next_page(self) -> None:
-        if self.pdf_document is None:
-            return
+        self.pdf_controller.next_page()
+        self.sync_pdf_state()
 
-        if (
-            self.page_index >=
-            self.pdf_document.page_count - 1
-        ):
-            return
+    def update_navigation_buttons(
+        self,
+    ) -> None:
+        self.pdf_controller.update_navigation_buttons()
 
-        self.page_index += 1
-        self.render_current_page()
-
-    def update_navigation_buttons(self) -> None:
-        if self.pdf_document is None:
-            self.previous_button.configure(
-                state=tk.DISABLED
-            )
-            self.next_button.configure(
-                state=tk.DISABLED
-            )
-            return
-
-        self.previous_button.configure(
-            state=(
-                tk.NORMAL
-                if self.page_index > 0
-                else tk.DISABLED
-            )
+    def sync_pdf_state(
+        self,
+    ) -> None:
+        self.pdf_document = (
+            self.pdf_controller.pdf_document
         )
 
-        self.next_button.configure(
-            state=(
-                tk.NORMAL
-                if self.page_index <
-                self.pdf_document.page_count - 1
-                else tk.DISABLED
-            )
+        self.pdf_path = (
+            self.pdf_controller.pdf_path
+        )
+
+        self.page_index = (
+            self.pdf_controller.page_index
+        )
+
+        self.original_bgr = (
+            self.pdf_controller.original_bgr
         )
 
     def detect_and_normalize(self) -> None:
@@ -1288,3 +1200,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
