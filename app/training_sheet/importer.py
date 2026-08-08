@@ -6,12 +6,16 @@ import cv2
 import fitz
 import numpy as np
 
+from app.config.project_paths import (
+    INPUT_DIR,
+    DEBUG_DIR,
+)
+
 
 BASE_DIR = Path(__file__).resolve().parent
 
 INPUT_PDF = (
-    BASE_DIR
-    / "input"
+    INPUT_DIR
     / "TRAINING_03.PDF"
 )
 

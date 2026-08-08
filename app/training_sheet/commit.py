@@ -10,6 +10,11 @@ from app.dataset_manifest import (
     add_sample,
     load_rows,
 )
+from app.config.project_paths import (
+    INPUT_DIR,
+    DEBUG_DIR,
+    DATASET_DIR,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
