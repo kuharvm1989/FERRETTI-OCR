@@ -1,24 +1,61 @@
 from __future__ import annotations
 
+from app.ocr.page_normalization import (
+    detect_aruco_markers,
+    normalize_page_by_markers,
+)
+from app.services.ocr_service import (
+    OCRService,
+)
+
 
 class OCRPipeline:
-    def __init__(
+    def detect_markers(
         self,
-        app,
-    ) -> None:
-        self.app = app
+        image_bgr,
+    ):
+        return detect_aruco_markers(
+            image_bgr
+        )
 
-    def detect_and_normalize(
+    def validate_markers(
         self,
-    ) -> None:
-        self.app.detect_and_normalize()
+        detected,
+        expected_markers,
+    ) -> set[int]:
+        detected_ids = set(
+            detected
+        )
 
-    def detect_filled_cells(
-        self,
-    ) -> None:
-        self.app.detect_filled_cells()
+        return (
+            expected_markers
+            - detected_ids
+        )
 
-    def recognize_digits(
+    def normalize_page(
         self,
-    ) -> None:
-        self.app.recognize_digits()
+        image_bgr,
+        detected,
+    ):
+        return normalize_page_by_markers(
+            image_bgr,
+            detected,
+        )
+
+    def analyze_cells(
+        self,
+        normalized_bgr,
+        *,
+        form_config_path,
+        output_dir,
+        preview_path,
+        geometry_config_path,
+    ):
+        return OCRService.analyze_page(
+            normalized_bgr,
+            form_config_path,
+            output_dir,
+            preview_path,
+            geometry_config_path,
+            save_all_cells=False,
+        )

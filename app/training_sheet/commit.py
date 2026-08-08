@@ -17,8 +17,6 @@ from app.config.project_paths import (
 )
 
 
-BASE_DIR = Path(__file__).resolve().parent
-
 SOURCE_PDF = (
     BASE_DIR
     / "input"
@@ -32,15 +30,6 @@ CELLS_DIR = (
     / "cells_preview"
 )
 
-DATASET_DIR = (
-    BASE_DIR
-    / "dataset"
-)
-
-CONFIRMED_DIR = (
-    DATASET_DIR
-    / "confirmed"
-)
 
 
 # Мінімальна кількість чорних пікселів,

@@ -724,13 +724,12 @@ class FerrettiOcrApp:
         self.root.update_idletasks()
 
         try:
-            analysis = OCRService.analyze_page(
+            analysis = self.ocr_pipeline.analyze_cells(
                 self.normalized_bgr,
-                FORM_V2_CONFIG_PATH,
-                CELL_OUTPUT_DIR,
-                CELL_PREVIEW_PATH,
-                CELL_GEOMETRY_CONFIG_PATH,
-                save_all_cells=False,
+                form_config_path=FORM_V2_CONFIG_PATH,
+                output_dir=CELL_OUTPUT_DIR,
+                preview_path=CELL_PREVIEW_PATH,
+                geometry_config_path=CELL_GEOMETRY_CONFIG_PATH,
             )
         except Exception as error:
             messagebox.showerror(
