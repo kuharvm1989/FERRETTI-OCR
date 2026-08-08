@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-
-BASE_DIR = Path(__file__).resolve().parent
-
-DATASET_DIR = BASE_DIR / "dataset"
-PENDING_DIR = DATASET_DIR / "pending"
-CONFIRMED_DIR = DATASET_DIR / "confirmed"
-REJECTED_DIR = DATASET_DIR / "rejected"
-
+from app.config.project_paths import (
+    DATASET_DIR,
+    DATASET_MANIFEST_PATH,
+    DATASET_CONFIRMED_DIR,
+    DATASET_PENDING_DIR,
+    DATASET_REJECTED_DIR,
+)
 
 def count_png_files(
     folder: Path,
@@ -35,7 +32,7 @@ def main() -> None:
 
     for digit in "0123456789":
         folder = (
-            CONFIRMED_DIR
+            DATASET_CONFIRMED_DIR
             / digit
         )
 
@@ -54,11 +51,11 @@ def main() -> None:
     )
 
     pending = count_png_files(
-        PENDING_DIR
+        DATASET_PENDING_DIR
     )
 
     rejected = count_png_files(
-        REJECTED_DIR
+        DATASET_REJECTED_DIR
     )
 
     print()

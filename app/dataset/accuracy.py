@@ -3,11 +3,14 @@ from __future__ import annotations
 import csv
 from collections import Counter, defaultdict
 from pathlib import Path
+from app.config.project_paths import (
+    DATASET_DIR,
+    DATASET_MANIFEST_PATH,
+)
 
+DATASET_DIR = Path(__file__).resolve().parent
 
-BASE_DIR = Path(__file__).resolve().parent
-
-MANIFEST_PATH = (
+DATASET_MANIFEST_PATH = (
     BASE_DIR
     / "dataset"
     / "dataset_manifest.csv"
@@ -15,13 +18,13 @@ MANIFEST_PATH = (
 
 
 def main() -> None:
-    if not MANIFEST_PATH.exists():
+    if not DATASET_MANIFEST_PATH.exists():
         print(
             "Не знайдено dataset_manifest.csv"
         )
         return
 
-    with MANIFEST_PATH.open(
+    with DATASET_MANIFEST_PATH.open(
         "r",
         encoding="utf-8-sig",
         newline="",
