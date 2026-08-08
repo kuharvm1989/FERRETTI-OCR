@@ -387,7 +387,9 @@ class FerrettiOcrApp:
             self.pdf_controller.original_bgr
         )
 
-    def detect_and_normalize(self) -> None:
+    def detect_and_normalize(
+        self,
+    ) -> None:
         if self.original_bgr is None:
             messagebox.showwarning(
                 "Немає сторінки",
@@ -395,28 +397,71 @@ class FerrettiOcrApp:
             )
             return
 
+        detected = self._detect_markers()
+
+        if detected is None:
+            return
+
+        preview = self._build_marker_preview(
+            detected
+        )
+
+        self.show_bgr_image(
+            self.original_canvas,
+            preview,
+            target="original",
+        )
+
+        if not self._validate_markers(
+            detected
+        ):
+            return
+
+        normalized = self._normalize_page(
+            detected
+        )
+
+        if normalized is None:
+            return
+
+        self._apply_normalized_page(
+            preview,
+            normalized,
+        )
+
+    def _detect_markers(
+        self,
+    ):
         try:
-            detected = detect_aruco_markers(
+            return detect_aruco_markers(
                 self.original_bgr
             )
+
         except Exception as error:
             messagebox.showerror(
                 "Помилка пошуку міток",
                 str(error),
             )
-            return
+            return None
 
-        detected_ids = set(detected)
-        missing_ids = EXPECTED_MARKERS - detected_ids
 
+    def _build_marker_preview(
+        self,
+        detected,
+    ) -> np.ndarray:
         preview = self.original_bgr.copy()
 
-        for marker_id, marker_data in detected.items():
-            corners = marker_data["corners"].astype(
-                np.int32
+        for marker_id, marker_data in (
+            detected.items()
+        ):
+            corners = (
+                marker_data["corners"]
+                .astype(np.int32)
             )
 
-            center = marker_data["center"]
+            center = marker_data[
+                "center"
+            ]
 
             cv2.polylines(
                 preview,
@@ -448,66 +493,100 @@ class FerrettiOcrApp:
                 cv2.LINE_AA,
             )
 
-        self.show_bgr_image(
-            self.original_canvas,
-            preview,
-            target="original",
+        return preview
+
+
+    def _validate_markers(
+        self,
+        detected,
+    ) -> bool:
+        detected_ids = set(
+            detected
         )
 
-        if missing_ids:
-            self.marker_var.set(
+        missing_ids = (
+            EXPECTED_MARKERS
+            - detected_ids
+        )
+
+        if not missing_ids:
+            return True
+
+        self.marker_var.set(
+            (
                 "Мітки: знайдено "
                 f"{len(detected_ids)} із 4"
             )
+        )
 
-            raise_message = (
-                "Не знайдено мітки: "
-                + ", ".join(
-                    str(value)
-                    for value in sorted(missing_ids)
+        message = (
+            "Не знайдено мітки: "
+            + ", ".join(
+                str(value)
+                for value in sorted(
+                    missing_ids
                 )
             )
+        )
 
-            messagebox.showerror(
-                "Не всі мітки знайдено",
-                raise_message,
-            )
+        messagebox.showerror(
+            "Не всі мітки знайдено",
+            message,
+        )
 
-            self.status_var.set(
-                raise_message
-            )
-            return
+        self.status_var.set(
+            message
+        )
 
+        return False
+
+
+    def _normalize_page(
+        self,
+        detected,
+    ):
         try:
-            normalized = normalize_page_by_markers(
+            return normalize_page_by_markers(
                 self.original_bgr,
                 detected,
             )
+
         except Exception as error:
             messagebox.showerror(
                 "Помилка вирівнювання",
                 str(error),
             )
-            return
+            return None
 
+
+    def _apply_normalized_page(
+        self,
+        preview: np.ndarray,
+        normalized: np.ndarray,
+    ) -> None:
         self.normalized_bgr = normalized
-
+    
         self.marker_var.set(
             "Мітки: 4 із 4"
         )
 
-        normalized_height, normalized_width = (
-            self.normalized_bgr.shape[:2]
-        )
+        (
+            normalized_height,
+            normalized_width,
+        ) = normalized.shape[:2]
 
         self.status_var.set(
-            "Сторінку вирівняно без зміни пропорцій: "
-            f"{normalized_width} × {normalized_height} px."
+            (
+                "Сторінку вирівняно "
+                "без зміни пропорцій: "
+                f"{normalized_width} × "
+                f"{normalized_height} px."
+            )
         )
 
         self.show_bgr_image(
             self.normalized_canvas,
-            self.normalized_bgr,
+            normalized,
             target="normalized",
         )
 
@@ -515,7 +594,7 @@ class FerrettiOcrApp:
             preview,
             normalized,
         )
-
+    
     def save_debug_results(
         self,
         marker_preview: np.ndarray,
