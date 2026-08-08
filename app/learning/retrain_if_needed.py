@@ -16,11 +16,6 @@ from app.config.project_paths import (
 )
 
 
-TRAIN_SCRIPT = (
-    PROJECT_DIR
-    / "training"
-    / "train_digit_svm.py"
-)
 
 REGRESSION_SCRIPT = (
     PROJECT_DIR
@@ -152,9 +147,22 @@ def run_script(
             sys.executable,
             str(script_path),
         ],
-        cwd=str(
-            PROJECT_DIR
-        ),
+        cwd=str(PROJECT_DIR),
+        text=True,
+        capture_output=True,
+    )
+
+
+def run_module(
+    module_name: str,
+) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            module_name,
+        ],
+        cwd=str(PROJECT_DIR),
         text=True,
         capture_output=True,
     )
@@ -269,8 +277,8 @@ def main() -> None:
         "Навчаємо нову модель..."
     )
 
-    training = run_script(
-        TRAIN_SCRIPT
+    training = run_module(
+        "app.learning.train_digit_svm"
     )
 
     print(

@@ -1,34 +1,15 @@
 from __future__ import annotations
 
 import random
-import sys
 from collections import Counter
-from pathlib import Path
 
 import cv2
 import numpy as np
 
-
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-
-if str(PROJECT_DIR) not in sys.path:
-    sys.path.insert(0, str(PROJECT_DIR))
-
-
-DATASET_DIR = (
-    PROJECT_DIR
-    / "dataset"
-    / "confirmed"
-)
-
-MODEL_DIR = (
-    PROJECT_DIR
-    / "models"
-)
-
-MODEL_PATH = (
-    MODEL_DIR
-    / "digit_svm.yml"
+from app.config.project_paths import (
+    DATASET_CONFIRMED_DIR,
+    DIGIT_SVM_MODEL_PATH,
+    MODELS_DIR,
 )
 
 IMAGE_SIZE = 64
@@ -168,7 +149,7 @@ def load_dataset():
 
     for digit in "0123456789":
         folder = (
-            DATASET_DIR
+            DATASET_CONFIRMED_DIR
             / digit
         )
 
@@ -378,17 +359,17 @@ def main() -> None:
         y_train,
     )
 
-    MODEL_DIR.mkdir(
+    MODELS_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
     svm.save(
-        str(MODEL_PATH)
+        str(DIGIT_SVM_MODEL_PATH)
     )
 
     print(
-        f"Модель: {MODEL_PATH}"
+        f"Модель: {DIGIT_SVM_MODEL_PATH}"
     )
 
     if len(x_test) == 0:

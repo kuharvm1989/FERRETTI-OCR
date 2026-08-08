@@ -17,7 +17,7 @@ if str(PROJECT_DIR) not in sys.path:
     )
 
 
-from training.train_digit_svm import (
+from app.learning.train_digit_svm import (
     create_hog,
     extract_features,
 )
