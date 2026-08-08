@@ -16,7 +16,9 @@ from app.ocr.ocr_engine import (
     export_ocr_results_csv,
     recognize_filled_cells,
 )
-
+from app.gui.controllers.table_calibration import (
+    TableCalibrationController,
+)
 from app.gui.dialogs.ocr_results_dialog import (
     OcrResultsDialog,
 )
@@ -69,8 +71,6 @@ class FerrettiOcrApp:
 
         self.original_photo: ImageTk.PhotoImage | None = None
         self.normalized_photo: ImageTk.PhotoImage | None = None
-        self.table_calibration_active = False
-        self.table_calibration_points: list[tuple[int, int]] = []
         self.normalized_preview_scale = 1.0
         self.normalized_preview_offset_x = 0
         self.normalized_preview_offset_y = 0
@@ -93,6 +93,13 @@ class FerrettiOcrApp:
 
         self.build_interface()
 
+        self.table_calibration = (
+            TableCalibrationController(
+                canvas=self.normalized_canvas,
+                status_var=self.status_var,
+            )
+        )
+        
     def build_interface(self) -> None:
         toolbar = ttk.Frame(
             self.root,
@@ -629,241 +636,82 @@ class FerrettiOcrApp:
             normalized,
         )
 
-    def start_table_calibration(self) -> None:
-        if self.normalized_bgr is None:
-            messagebox.showwarning(
-                "Немає вирівняної сторінки",
-                "Спочатку знайдіть мітки "
-                "та вирівняйте сторінку.",
-            )
-            return
-
-        self.table_calibration_points.clear()
-        self.table_calibration_active = True
-
-        self.status_var.set(
-            "Калібрування таблиці: клацніть "
-            "верхній лівий кут першої клітинки ПН."
+    def start_table_calibration(
+        self,
+    ) -> None:
+        self.table_calibration.update_view_state(
+            normalized_bgr=self.normalized_bgr,
+            preview_scale=(
+                self.normalized_preview_scale
+            ),
+            preview_offset_x=(
+                self.normalized_preview_offset_x
+            ),
+            preview_offset_y=(
+                self.normalized_preview_offset_y
+            ),
         )
 
-        self.draw_table_calibration()
+        self.table_calibration.start()
 
 
     def on_normalized_canvas_click(
         self,
         event: tk.Event,
     ) -> None:
-        if (
-            not self.table_calibration_active
-            or self.normalized_bgr is None
-        ):
-            return
-
-        canvas_x = self.normalized_canvas.canvasx(
-            event.x
-        )
-
-        canvas_y = self.normalized_canvas.canvasy(
-            event.y
-        )
-
-        image_x = (
-            canvas_x -
-            self.normalized_preview_offset_x
-        )
-
-        image_y = (
-            canvas_y -
-            self.normalized_preview_offset_y
-        )
-
-        if self.normalized_preview_scale <= 0:
-            return
-
-        original_x = round(
-            image_x /
-            self.normalized_preview_scale
-        )
-
-        original_y = round(
-            image_y /
-            self.normalized_preview_scale
-        )
-
-        height, width = self.normalized_bgr.shape[:2]
-
-        if not (
-            0 <= original_x < width
-            and 0 <= original_y < height
-        ):
-            return
-
-        self.table_calibration_points.append(
-            (original_x, original_y)
-        )
-
-        if len(self.table_calibration_points) == 1:
-            self.status_var.set(
-                "Перша точка збережена. "
-                "Клацніть нижній правий кут "
-                "останньої клітинки СБ."
-            )
-
-        elif len(self.table_calibration_points) >= 2:
-            self.table_calibration_points = (
-                self.table_calibration_points[:2]
-            )
-
-            self.table_calibration_active = False
-
-            first = self.table_calibration_points[0]
-            second = self.table_calibration_points[1]
-
-            self.status_var.set(
-                f"Калібрування готове: "
-                f"({first[0]}, {first[1]}) → "
-                f"({second[0]}, {second[1]})."
-            )
-
-        self.draw_table_calibration()
-
-
-    def draw_table_calibration(self) -> None:
-        self.normalized_canvas.delete(
-            "table_calibration"
-        )
-
-        if not self.table_calibration_points:
-            return
-
-        display_points = []
-
-        for index, point in enumerate(
-            self.table_calibration_points,
-            start=1,
-        ):
-            display_x = (
-                point[0] *
-                self.normalized_preview_scale +
+        self.table_calibration.update_view_state(
+            normalized_bgr=self.normalized_bgr,
+            preview_scale=(
+                self.normalized_preview_scale
+            ),
+            preview_offset_x=(
                 self.normalized_preview_offset_x
-            )
-
-            display_y = (
-                point[1] *
-                self.normalized_preview_scale +
+            ),
+            preview_offset_y=(
                 self.normalized_preview_offset_y
-            )
-
-            display_points.append(
-                (display_x, display_y)
-            )
-
-            radius = 6
-
-            self.normalized_canvas.create_oval(
-                display_x - radius,
-                display_y - radius,
-                display_x + radius,
-                display_y + radius,
-                outline="red",
-                fill="yellow",
-                width=2,
-                tags="table_calibration",
-            )
-
-            self.normalized_canvas.create_text(
-                display_x + 12,
-                display_y - 12,
-                text=str(index),
-                fill="red",
-                font=("Arial", 12, "bold"),
-                tags="table_calibration",
-            )
-
-        if len(display_points) == 2:
-            first = display_points[0]
-            second = display_points[1]
-
-            self.normalized_canvas.create_rectangle(
-                first[0],
-                first[1],
-                second[0],
-                second[1],
-                outline="red",
-                width=3,
-                tags="table_calibration",
-            )
-
-    def save_table_calibration(self) -> None:
-        if len(self.table_calibration_points) != 2:
-            messagebox.showwarning(
-                "Калібрування не завершено",
-                "Потрібно встановити дві точки.",
-            )
-            return
-
-        first = self.table_calibration_points[0]
-        second = self.table_calibration_points[1]
-
-        x1 = min(first[0], second[0])
-        y1 = min(first[1], second[1])
-        x2 = max(first[0], second[0])
-        y2 = max(first[1], second[1])
-
-        config_dir = BASE_DIR / "config"
-        config_dir.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        config_path = (
-            config_dir /
-            "form_v2.json"
-        )
-
-        import json
-
-        if self.normalized_bgr is None:
-            messagebox.showwarning(
-                "Немає вирівняної сторінки",
-                "Спочатку знайдіть мітки "
-                "та вирівняйте сторінку.",
-            )
-            return
-
-        normalized_height, normalized_width = (
-            self.normalized_bgr.shape[:2]
-        )
-
-        config = {
-            "template_version": "FORM-V2",
-            "normalized_width": normalized_width,
-            "normalized_height": normalized_height,
-            "marker_aspect_ratio": (
-                normalized_width / normalized_height
             ),
-            "table_grid": {
-                "x1": x1,
-                "y1": y1,
-                "x2": x2,
-                "y2": y2,
-            },
-            "day_columns": 6,
-        }
-
-        config_path.write_text(
-            json.dumps(
-                config,
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
         )
 
-        messagebox.showinfo(
-            "Калібрування збережено",
-            f"Файл:\n{config_path}",
-    )
+        self.table_calibration.on_canvas_click(
+            event
+        )
+
+
+    def draw_table_calibration(
+        self,
+    ) -> None:
+        self.table_calibration.update_view_state(
+            normalized_bgr=self.normalized_bgr,
+            preview_scale=(
+                self.normalized_preview_scale
+            ),
+            preview_offset_x=(
+                self.normalized_preview_offset_x
+            ),
+            preview_offset_y=(
+                self.normalized_preview_offset_y
+            ),
+        )
+
+        self.table_calibration.draw()
+
+    def save_table_calibration(
+        self,
+    ) -> None:
+        self.table_calibration.update_view_state(
+            normalized_bgr=self.normalized_bgr,
+            preview_scale=(
+                self.normalized_preview_scale
+            ),
+            preview_offset_x=(
+                self.normalized_preview_offset_x
+            ),
+            preview_offset_y=(
+                self.normalized_preview_offset_y
+            ),
+        )
+
+        self.table_calibration.save()
 
     def detect_filled_cells(self) -> None:
         if self.normalized_bgr is None:
