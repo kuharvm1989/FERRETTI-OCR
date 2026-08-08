@@ -7,7 +7,7 @@ from pathlib import Path
 from tkinter import messagebox
 
 from PIL import Image, ImageTk
-from app.dataset_manifest import (
+from app.dataset.manifest import (
     confirm_sample,
     reject_sample,
 )
